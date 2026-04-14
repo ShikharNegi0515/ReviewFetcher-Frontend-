@@ -18,7 +18,7 @@ function App() {
     setSyncing(true);
     setSyncError('');
     try {
-      const res = await fetch('https://slicer-liquefy-festival.ngrok-free.dev/reviews/locations?clinicId=1', {
+      const res = await fetch('https://reviewfetcher-backend.onrender.com/reviews/locations?clinicId=1', {
         method: 'POST',
       });
       const data = await res.json();
@@ -64,7 +64,7 @@ function App() {
   }, [syncLocations]);
 
   const handleConnect = () => {
-    window.location.href = 'https://slicer-liquefy-festival.ngrok-free.dev/auth/google?clinicId=1';
+    window.location.href = 'https://reviewfetcher-backend.onrender.com/auth/google?clinicId=1';
   };
 
   return (
