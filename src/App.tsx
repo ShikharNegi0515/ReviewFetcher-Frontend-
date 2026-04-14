@@ -13,6 +13,12 @@ function App() {
   const [locations, setLocations] = useState<LocationDebug[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState('');
+  
+  // New state for reviews
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [activeLocationId, setActiveLocationId] = useState('');
 
   const syncLocations = useCallback(async () => {
     setSyncing(true);
@@ -62,6 +68,29 @@ function App() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [syncLocations]);
+
+  const handleViewReviews = async (locationId: string) => {
+    setLoadingReviews(true);
+    setActiveLocationId(locationId);
+    try {
+      // 1. Sync reviews from Google (Update DB)
+      await fetch(`https://reviewfetcher-backend.onrender.com/reviews/locations/${locationId}/sync?clinicId=1`, {
+        method: 'POST',
+      });
+
+      // 2. Get reviews from DB
+      const res = await fetch(`https://reviewfetcher-backend.onrender.com/reviews/locations/${locationId}`);
+      const data = await res.json();
+      
+      setReviews(data.reviews || []);
+      setSummary(data.summary || null);
+    } catch (err: any) {
+      console.error('handleViewReviews error:', err);
+      alert('Failed to fetch reviews: ' + err.message);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
 
   const handleConnect = () => {
     window.location.href = 'https://reviewfetcher-backend.onrender.com/auth/google?clinicId=1';
@@ -127,26 +156,54 @@ function App() {
               <div style={{ color: '#7dd3fc' }}>
                 locationId: <span style={{ color: '#f0abfc' }}>{loc.locationId}</span>
               </div>
+              
+              <button
+                className="btn-small"
+                style={{ marginTop: '12px', width: '100%' }}
+                onClick={() => handleViewReviews(loc.locationId)}
+                disabled={loadingReviews}
+              >
+                {loadingReviews && activeLocationId === loc.locationId ? '⌛ Syncing...' : '⭐ View Reviews'}
+              </button>
             </div>
           ))}
 
-          {!syncing && locations.length > 0 && (
-            <button
-              style={{
-                marginTop: '8px',
-                padding: '6px 14px',
-                background: 'rgba(99,102,241,0.3)',
-                border: '1px solid rgba(99,102,241,0.5)',
-                borderRadius: '6px',
-                color: '#c7d2fe',
-                cursor: 'pointer',
-                fontSize: '13px',
-              }}
-              onClick={syncLocations}
-            >
-              🔄 Re-sync Locations
-            </button>
-          )}
+        </div>
+      )}
+
+      {/* ── REVIEWS SECTION ── */}
+      {reviews.length > 0 && (
+        <div style={{ marginTop: '32px', textAlign: 'left' }}>
+          <h2 style={{ fontSize: '20px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Reviews</span>
+            {summary && (
+              <span style={{ fontSize: '14px', background: '#4ade8022', color: '#4ade80', padding: '2px 8px', borderRadius: '12px' }}>
+                ⭐ {summary.average} ({summary.total} total)
+              </span>
+            )}
+          </h2>
+          
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {reviews.map((rev, i) => (
+              <div key={i} style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '12px',
+                padding: '16px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <strong style={{ color: '#e2e8f0' }}>{rev.reviewerName}</strong>
+                  <span style={{ color: '#fbbf24' }}>{'★'.repeat(parseInt(rev.starRating?.replace('STAR_','')) || 0)}</span>
+                </div>
+                <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.5', margin: 0 }}>
+                  {rev.comment || 'No comment provided.'}
+                </p>
+                <div style={{ marginTop: '8px', fontSize: '12px', color: '#475569' }}>
+                  {rev.reviewCreateTime ? new Date(rev.reviewCreateTime).toLocaleDateString() : ''}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
