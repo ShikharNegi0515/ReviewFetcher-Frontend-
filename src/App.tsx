@@ -25,6 +25,8 @@ interface Summary {
   total: number;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://reviewfetcher-backend.onrender.com';
+
 function App() {
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -42,7 +44,7 @@ function App() {
     setSyncing(true);
     setSyncError('');
     try {
-      const res = await fetch('http://localhost:3000/reviews/locations?clinicId=1', {
+      const res = await fetch(`${API_BASE_URL}/reviews/locations?clinicId=1`, {
         method: 'POST',
       });
       const data = await res.json();
@@ -92,12 +94,12 @@ function App() {
     setActiveLocationId(locationId);
     try {
       // 1. Sync reviews from Google (Update DB)
-      await fetch(`http://localhost:3000/reviews/locations/${locationId}/sync?clinicId=1`, {
+      await fetch(`${API_BASE_URL}/reviews/locations/${locationId}/sync?clinicId=1`, {
         method: 'POST',
       });
 
       // 2. Get reviews from DB
-      const res = await fetch(`http://localhost:3000/reviews/locations/${locationId}`);
+      const res = await fetch(`${API_BASE_URL}/reviews/locations/${locationId}`);
       const data = await res.json();
 
       setReviews(data.reviews || []);
@@ -111,7 +113,7 @@ function App() {
   };
 
   const handleConnect = () => {
-    window.location.href = 'http://localhost:3000/auth/google?clinicId=1';
+    window.location.href = `${API_BASE_URL}/auth/google?clinicId=1`;
   };
 
   return (
